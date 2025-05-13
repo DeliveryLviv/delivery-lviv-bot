@@ -5,6 +5,7 @@ from telegram.ext import (
     Application, CommandHandler, MessageHandler, ConversationHandler,
     ContextTypes, filters
 )
+import asyncio
 
 # Основна конфігурація
 TOKEN = "7333032712:AAGDIXKZPa-iBabPRL2YaWI9_oeL5gTaA1Y"
@@ -34,17 +35,16 @@ app = Flask(__name__)
 bot = Bot(token=TOKEN)
 application = Application.builder().token(TOKEN).build()
 
-# Додаємо кореневий маршрут для запобігання 404
-@app.route("/")
-def index():
-    return "✅ Бот працює", 200
-
 # Вебхук: приймає оновлення з Telegram
 @app.post(WEBHOOK_PATH)
 def webhook():
     update = Update.de_json(request.get_json(force=True), bot)
     application.update_queue.put_nowait(update)
     return "OK", 200
+
+@app.route("/", methods=["GET"])
+def root():
+    return "✅ Бот запущено!"
 
 # Обробники діалогу
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -82,7 +82,6 @@ async def get_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["phone"] = update.message.text
-
     msg = f"""📦 НОВЕ ЗАМОВЛЕННЯ!
 
 👤 Ім’я: {context.user_data['name']}
@@ -101,7 +100,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Замовлення скасовано.", reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
-# Реєстрація обробників
+# Обробники
 conv_handler = ConversationHandler(
     entry_points=[CommandHandler("start", start)],
     states={
@@ -117,16 +116,11 @@ conv_handler = ConversationHandler(
 
 application.add_handler(conv_handler)
 
-# Запуск
-if __name__ == '__main__':
-    import asyncio
+# Ініціалізація
+async def setup():
+    await application.initialize()
+    await application.start()
+    await bot.set_webhook(WEBHOOK_URL)
+    print("✅ Вебхук встановлено і бот працює")
 
-    async def main():
-        await application.initialize()
-        await application.start()
-        await bot.set_webhook(WEBHOOK_URL)
-        print("✅ Вебхук встановлено і бот працює")
-        port = int(os.environ.get("PORT", 10000))
-        app.run(host="0.0.0.0", port=port)
-
-    asyncio.run(main())
+asyncio.get_event_loop().run_until_complete(setup())
