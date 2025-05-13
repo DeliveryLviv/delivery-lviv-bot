@@ -34,6 +34,11 @@ app = Flask(__name__)
 bot = Bot(token=TOKEN)
 application = Application.builder().token(TOKEN).build()
 
+# Додаємо кореневий маршрут для запобігання 404
+@app.route("/")
+def index():
+    return "✅ Бот працює", 200
+
 # Вебхук: приймає оновлення з Telegram
 @app.post(WEBHOOK_PATH)
 def webhook():
@@ -78,7 +83,6 @@ async def get_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["phone"] = update.message.text
 
-    # Формування повідомлення
     msg = f"""📦 НОВЕ ЗАМОВЛЕННЯ!
 
 👤 Ім’я: {context.user_data['name']}
