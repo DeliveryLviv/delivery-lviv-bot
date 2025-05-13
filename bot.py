@@ -36,8 +36,8 @@ def webhook():
     application.update_queue.put_nowait(update)
     return "OK"
 
+# Обробники кроків форми
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print("✳️ Команда /start отримана")
     await update.message.reply_text("Привіт! Як вас звати?")
     return NAME
 
@@ -51,10 +51,8 @@ async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def get_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["service"] = update.message.text
-    await update.message.reply_text(
-        "Чи потрібні вантажники? Якщо так — вкажіть кількість. Якщо ні — напишіть 'ні'.",
-        reply_markup=ReplyKeyboardRemove()
-    )
+    await update.message.reply_text("Чи потрібні вантажники? Якщо так — вкажіть кількість. Якщо ні — напишіть 'ні'.",
+                                    reply_markup=ReplyKeyboardRemove())
     return LOADERS
 
 async def get_loaders(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -74,7 +72,6 @@ async def get_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["phone"] = update.message.text
-
     msg = f"""\U0001F4E6 НОВЕ ЗАМОВЛЕННЯ!
 
 \U0001F464 Ім’я: {context.user_data['name']}
@@ -83,15 +80,16 @@ async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
 \U0001F4CD Адреса: {context.user_data['address']}
 \U0001F552 Час: {context.user_data['time']}
 \U0001F4DE Телефон: {context.user_data['phone']}"""
-
     await context.bot.send_message(chat_id=ADMIN_CHAT_ID, text=msg)
-    await update.message.reply_text("Дякуємо! Ми зв’яжемося з вами протягом 10 хвилин.", reply_markup=ReplyKeyboardRemove())
+    await update.message.reply_text("Дякуємо! Ми зв’яжемося з вами протягом 10 хвилин.",
+                                    reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Замовлення скасовано.", reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
+# Реєстрація обробників
 conv_handler = ConversationHandler(
     entry_points=[CommandHandler("start", start)],
     states={
@@ -107,14 +105,22 @@ conv_handler = ConversationHandler(
 
 application.add_handler(conv_handler)
 
+# Запуск
 if __name__ == '__main__':
     import asyncio
 
     async def main():
-        await bot.set_webhook(WEBHOOK_URL)
-        await application.initialize()
-        print("✅ Вебхук встановлено")
         port = int(os.environ.get("PORT", 5000))
-        app.run(host="0.0.0.0", port=port)
+        await application.initialize()
+        await application.start()
+        await bot.set_webhook(WEBHOOK_URL)
+        print("✅ Вебхук встановлено і бот працює")
+        await application.updater.start_webhook(
+            listen="0.0.0.0",
+            port=port,
+            url_path=WEBHOOK_PATH,
+            webhook_url=WEBHOOK_URL
+        )
+        await application.updater.wait()
 
     asyncio.run(main())
