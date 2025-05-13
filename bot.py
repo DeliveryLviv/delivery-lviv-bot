@@ -37,6 +37,7 @@ def webhook():
     return "OK"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print("✳️ Команда /start отримана")
     await update.message.reply_text("Привіт! Як вас звати?")
     return NAME
 
@@ -84,7 +85,6 @@ async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
 \U0001F4DE Телефон: {context.user_data['phone']}"""
 
     await context.bot.send_message(chat_id=ADMIN_CHAT_ID, text=msg)
-
     await update.message.reply_text("Дякуємо! Ми зв’яжемося з вами протягом 10 хвилин.", reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
@@ -112,11 +112,9 @@ if __name__ == '__main__':
 
     async def main():
         await bot.set_webhook(WEBHOOK_URL)
-        application.add_handler(conv_handler)
         await application.initialize()
-        print("Webhook встановлено")
+        print("✅ Вебхук встановлено")
         port = int(os.environ.get("PORT", 5000))
         app.run(host="0.0.0.0", port=port)
 
     asyncio.run(main())
-
