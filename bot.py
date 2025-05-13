@@ -37,9 +37,9 @@ application = Application.builder().token(TOKEN).build()
 
 # Вебхук: приймає оновлення з Telegram
 @app.post(WEBHOOK_PATH)
-def webhook():
+async def webhook():
     update = Update.de_json(request.get_json(force=True), bot)
-    application.update_queue.put_nowait(update)
+    await application.process_update(update)
     return "OK", 200
 
 @app.route("/", methods=["GET"])
