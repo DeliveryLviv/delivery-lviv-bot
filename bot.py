@@ -6,37 +6,42 @@ from telegram.ext import (
     ContextTypes, filters
 )
 
+# Основна конфігурація
 TOKEN = "7333032712:AAGDIXKZPa-iBabPRL2YaWI9_oeL5gTaA1Y"
 ADMIN_CHAT_ID = 915669253
 WEBHOOK_PATH = f"/webhook/{TOKEN}"
 WEBHOOK_URL = f"https://delivery-lviv-bot.onrender.com{WEBHOOK_PATH}"
 
+# Кроки форми
 NAME, SERVICE, LOADERS, ADDRESS, TIME, PHONE = range(6)
 
+# Клавіатура послуг
 service_keyboard = [
-    ["\U0001F3E2 Квартирний та офісний переїзд"],
-    ["\U0001F4E6 Перевезення збірних вантажів"],
-    ["\U0001F9F1 Перевезення буд матеріалів"],
-    ["\u26A0\uFE0F Перевезення негабаритних вантажів"],
-    ["\U0001F3D7 Вивіз будсміття"],
-    ["\u2744\uFE0F Перевезення вантажів рефрижиратором"],
-    ["\U0001F69B Доставка меблів, техніки, інше"],
-    ["\U0001F3EC Для магазинів: доставка продуктів, товарів"],
-    ["\U0001F37D Для клінік, ресторанів, кавʼярень: перевезення продуктів у холодильнику"],
-    ["\U0001F6D2 Для онлайн-магазинів (логістика)"]
+    ["🏢 Квартирний та офісний переїзд"],
+    ["📦 Перевезення збірних вантажів"],
+    ["🧱 Перевезення буд матеріалів"],
+    ["⚠️ Перевезення негабаритних вантажів"],
+    ["🏗 Вивіз будсміття"],
+    ["❄️ Перевезення вантажів рефрижиратором"],
+    ["🚛 Доставка меблів, техніки, інше"],
+    ["🏬 Для магазинів: доставка продуктів, товарів"],
+    ["🍽 Для клінік, ресторанів, кавʼярень"],
+    ["🛒 Для онлайн-магазинів (логістика)"]
 ]
 
+# Ініціалізація Flask і Telegram
 app = Flask(__name__)
 bot = Bot(token=TOKEN)
 application = Application.builder().token(TOKEN).build()
 
+# Вебхук: приймає оновлення з Telegram
 @app.post(WEBHOOK_PATH)
 def webhook():
     update = Update.de_json(request.get_json(force=True), bot)
     application.update_queue.put_nowait(update)
-    return "OK"
+    return "OK", 200
 
-# Обробники кроків форми
+# Обробники діалогу
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Привіт! Як вас звати?")
     return NAME
@@ -72,14 +77,17 @@ async def get_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["phone"] = update.message.text
-    msg = f"""\U0001F4E6 НОВЕ ЗАМОВЛЕННЯ!
 
-\U0001F464 Ім’я: {context.user_data['name']}
-\U0001F6E0 Послуга: {context.user_data['service']}
-\U0001F46C Вантажники: {context.user_data['loaders']}
-\U0001F4CD Адреса: {context.user_data['address']}
-\U0001F552 Час: {context.user_data['time']}
-\U0001F4DE Телефон: {context.user_data['phone']}"""
+    # Формування повідомлення
+    msg = f"""📦 НОВЕ ЗАМОВЛЕННЯ!
+
+👤 Ім’я: {context.user_data['name']}
+🛠 Послуга: {context.user_data['service']}
+🧍‍♂️ Вантажники: {context.user_data['loaders']}
+📍 Адреса: {context.user_data['address']}
+⏰ Час: {context.user_data['time']}
+📞 Телефон: {context.user_data['phone']}"""
+
     await context.bot.send_message(chat_id=ADMIN_CHAT_ID, text=msg)
     await update.message.reply_text("Дякуємо! Ми зв’яжемося з вами протягом 10 хвилин.",
                                     reply_markup=ReplyKeyboardRemove())
@@ -100,7 +108,7 @@ conv_handler = ConversationHandler(
         TIME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_time)],
         PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone)],
     },
-    fallbacks=[CommandHandler("cancel", cancel)]
+    fallbacks=[CommandHandler("cancel", cancel)],
 )
 
 application.add_handler(conv_handler)
@@ -110,18 +118,11 @@ if __name__ == '__main__':
     import asyncio
 
     async def main():
-        port = int(os.environ.get("PORT", 5000))
-        app.run(host="0.0.0.0", port=port)
         await application.initialize()
         await application.start()
         await bot.set_webhook(WEBHOOK_URL)
         print("✅ Вебхук встановлено і бот працює")
-        await application.updater.start_webhook(
-            listen="0.0.0.0",
-            port=port,
-            url_path=WEBHOOK_PATH,
-            webhook_url=WEBHOOK_URL
-        )
-        await application.updater.wait()
+        port = int(os.environ.get("PORT", 10000))
+        app.run(host="0.0.0.0", port=port)
 
     asyncio.run(main())
