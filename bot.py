@@ -111,10 +111,12 @@ if __name__ == '__main__':
     import asyncio
 
     async def main():
-        await application.initialize()
         await bot.set_webhook(WEBHOOK_URL)
+        application.add_handler(conv_handler)
+        await application.initialize()
         print("Webhook встановлено")
         port = int(os.environ.get("PORT", 5000))
         app.run(host="0.0.0.0", port=port)
 
     asyncio.run(main())
+
