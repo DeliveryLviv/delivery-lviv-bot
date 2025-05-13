@@ -109,9 +109,12 @@ application.add_handler(conv_handler)
 
 if __name__ == '__main__':
     import asyncio
-    async def run():
-        await application.bot.set_webhook(WEBHOOK_URL)
+
+    async def main():
+        await application.initialize()
+        await bot.set_webhook(WEBHOOK_URL)
         print("Webhook встановлено")
-    asyncio.run(run())
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+        port = int(os.environ.get("PORT", 5000))
+        app.run(host="0.0.0.0", port=port)
+
+    asyncio.run(main())
