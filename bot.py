@@ -10,8 +10,8 @@ import asyncio
 # Основна конфігурація
 TOKEN = "7333032712:AAGDIXKZPa-iBabPRL2YaWI9_oeL5gTaA1Y"
 ADMIN_CHAT_ID = 915669253
-WEBHOOK_PATH = f"/webhook/{TOKEN}"
-WEBHOOK_URL = f"https://delivery-lviv-bot.onrender.com{WEBHOOK_PATH}"
+WEBHOOK_PATH = f"/webhook/7333032712:AAGDIXKZPa-iBabPRL2YaWI9_oeL5gTaA1Y"
+WEBHOOK_URL = f"https://delivery-lviv-bot.onrender.com/webhook/7333032712:AAGDIXKZPa-iBabPRL2YaWI9_oeL5gTaA1Y"
 
 # Кроки форми
 NAME, SERVICE, LOADERS, ADDRESS, TIME, PHONE = range(6)
