@@ -1,6 +1,6 @@
 import os
 from flask import Flask, request
-from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove, Bot
+from telegram import Update, Bot, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import (
     Application, CommandHandler, MessageHandler, ConversationHandler,
     ContextTypes, filters
@@ -8,8 +8,8 @@ from telegram.ext import (
 
 TOKEN = "7333032712:AAGDIXKZPa-iBabPRL2YaWI9_oeL5gTaA1Y"
 ADMIN_CHAT_ID = 915669253
-WEBHOOK_PATH = f"/webhook/7333032712:AAGDIXKZPa-iBabPRL2YaWI9_oeL5gTaA1Y"
-WEBHOOK_URL = f"https://delivery-lviv-bot.onrender.com/webhook/7333032712:AAGDIXKZPa-iBabPRL2YaWI9_oeL5gTaA1Y"
+WEBHOOK_PATH = f"/webhook/{TOKEN}"
+WEBHOOK_URL = f"https://delivery-lviv-bot.onrender.com{WEBHOOK_PATH}"
 
 NAME, SERVICE, LOADERS, ADDRESS, TIME, PHONE = range(6)
 
@@ -31,7 +31,7 @@ bot = Bot(token=TOKEN)
 application = Application.builder().token(TOKEN).build()
 
 @app.post(WEBHOOK_PATH)
-def webhook() -> str:
+def webhook():
     update = Update.de_json(request.get_json(force=True), bot)
     application.update_queue.put_nowait(update)
     return "OK"
@@ -84,6 +84,7 @@ async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
 \U0001F4DE Телефон: {context.user_data['phone']}"""
 
     await context.bot.send_message(chat_id=ADMIN_CHAT_ID, text=msg)
+
     await update.message.reply_text("Дякуємо! Ми зв’яжемося з вами протягом 10 хвилин.", reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
@@ -109,10 +110,8 @@ application.add_handler(conv_handler)
 if __name__ == '__main__':
     import asyncio
     async def run():
-        await application.initialize()
         await application.bot.set_webhook(WEBHOOK_URL)
         print("Webhook встановлено")
     asyncio.run(run())
-
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
