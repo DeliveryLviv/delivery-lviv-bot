@@ -1,21 +1,19 @@
-import os
-import asyncio
-from flask import Flask, request
+
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import (
     Application, CommandHandler, MessageHandler, ConversationHandler,
     ContextTypes, filters
 )
 
-# Отримуємо токен і ID адміністратора
+import os
+
 TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_CHAT_ID = int(os.getenv("ADMIN_CHAT_ID"))
 
 # Кроки
 NAME, SERVICE, LOADERS, ADDRESS, TIME, PHONE = range(6)
 
-# Клавіатури
-start_keyboard = [["🚀 Зробити замовлення"]]
+# Клавіатура послуг
 service_keyboard = [
     ["🏢 Квартирний та офісний переїзд"],
     ["📦 Перевезення збірних вантажів"],
@@ -29,7 +27,8 @@ service_keyboard = [
     ["🛒 Для онлайн-магазинів (логістика)"]
 ]
 
-# Хендлери
+start_keyboard = [["🚀 Зробити замовлення"]]
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Натисніть кнопку нижче, щоб почати оформлення замовлення.",
@@ -82,7 +81,7 @@ async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await context.bot.send_message(chat_id=ADMIN_CHAT_ID, text=msg)
     await update.message.reply_text(
-        "Дякуємо! Ми зв’яжемося з вами протягом 15 хвилин.",
+        "Дякуємо! Ми зв’яжемося з вами протягом 10 хвилин.",
         reply_markup=ReplyKeyboardMarkup(start_keyboard, resize_keyboard=True)
     )
     return NAME
@@ -91,16 +90,9 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Замовлення скасовано.", reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
-# Flask App для Render
-flask_app = Flask(__name__)
-
-WEBHOOK_PATH = f"/{TOKEN}"
-WEBHOOK_URL = f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}{WEBHOOK_PATH}"
-
 def main():
-    application = Application.builder().token(TOKEN).build()
+    app = Application.builder().token(TOKEN).build()
 
-    # Додаємо хендлери
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
         states={
@@ -113,26 +105,10 @@ def main():
         },
         fallbacks=[CommandHandler("cancel", cancel)],
     )
-    application.add_handler(conv_handler)
 
-    # Webhook handler
-    @flask_app.route(WEBHOOK_PATH, methods=["POST"])
-def telegram_webhook():
-    update = Update.de_json(request.get_json(force=True), application.bot)
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(application.process_update(update))
-    return "ok"
-
-    # Healthcheck
-    @flask_app.route("/", methods=["GET"])
-    def index():
-        return "Бот працює!"
-
-    # Запуск
-    port = int(os.environ.get('PORT', 5000))
-    asyncio.get_event_loop().run_until_complete(application.bot.set_webhook(WEBHOOK_URL))
-    flask_app.run(host="0.0.0.0", port=port)
+    app.add_handler(conv_handler)
+    print("✅ Бот запущено через polling")
+    app.run_polling()
 
 if __name__ == "__main__":
     main()
