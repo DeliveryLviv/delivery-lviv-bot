@@ -6,9 +6,13 @@ from telegram.ext import (
 )
 
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_CHAT_ID = int(os.getenv("ADMIN_CHAT_ID"))
+
 
 # Кроки
 NAME, SERVICE, LOADERS, ADDRESS, TIME, PHONE = range(6)
