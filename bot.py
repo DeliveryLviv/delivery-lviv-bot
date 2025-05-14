@@ -1,20 +1,21 @@
 import os
-import asyncio
 from flask import Flask, request
 from telegram import Update, Bot, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import (
-    Application, CommandHandler, MessageHandler, ContextTypes,
-    ConversationHandler, filters
+    Application, CommandHandler, MessageHandler, ConversationHandler,
+    ContextTypes, filters
 )
 
-# === Конфігурація ===
+# Основна конфігурація
 TOKEN = "7333032712:AAGDIXKZPa-iBabPRL2YaWI9_oeL5gTaA1Y"
 ADMIN_CHAT_ID = 915669253
 WEBHOOK_PATH = f"/webhook/{TOKEN}"
-WEBHOOK_URL = f"https://transportation-plus-bot.onrender.com{WEBHOOK_PATH}"  # УВАГА: домен має бути без підкреслення "_"
+WEBHOOK_URL = f"https://delivery-lviv-bot.onrender.com{WEBHOOK_PATH}"
 
+# Кроки форми
 NAME, SERVICE, LOADERS, ADDRESS, TIME, PHONE = range(6)
 
+# Клавіатура послуг
 service_keyboard = [
     ["🏢 Квартирний та офісний переїзд"],
     ["📦 Перевезення збірних вантажів"],
@@ -28,22 +29,24 @@ service_keyboard = [
     ["🛒 Для онлайн-магазинів (логістика)"]
 ]
 
-# === Flask і Telegram ===
+# Ініціалізація Flask і Telegram
 app = Flask(__name__)
 bot = Bot(token=TOKEN)
 application = Application.builder().token(TOKEN).build()
 
+# Додаємо кореневий маршрут для запобігання 404
+@app.route("/")
+def index():
+    return "✅ Бот працює", 200
+
+# Вебхук: приймає оновлення з Telegram
 @app.post(WEBHOOK_PATH)
-async def webhook():
+def webhook():
     update = Update.de_json(request.get_json(force=True), bot)
-    await application.process_update(update)
+    application.update_queue.put_nowait(update)
     return "OK", 200
 
-@app.route("/", methods=["GET"])
-def root():
-    return "✅ Бот запущено!"
-
-# === Хендлери ===
+# Обробники діалогу
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Привіт! Як вас звати?")
     return NAME
@@ -79,6 +82,7 @@ async def get_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["phone"] = update.message.text
+
     msg = f"""📦 НОВЕ ЗАМОВЛЕННЯ!
 
 👤 Ім’я: {context.user_data['name']}
@@ -97,7 +101,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Замовлення скасовано.", reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
-# === Додати обробники ===
+# Реєстрація обробників
 conv_handler = ConversationHandler(
     entry_points=[CommandHandler("start", start)],
     states={
@@ -110,18 +114,19 @@ conv_handler = ConversationHandler(
     },
     fallbacks=[CommandHandler("cancel", cancel)],
 )
+
 application.add_handler(conv_handler)
 
-# === Головний блок ===
-if __name__ == "__main__":
+# Запуск
+if __name__ == '__main__':
+    import asyncio
+
     async def main():
         await application.initialize()
         await application.start()
         await bot.set_webhook(WEBHOOK_URL)
-        print(f"✅ Вебхук встановлено: {WEBHOOK_URL}")
+        print("✅ Вебхук встановлено і бот працює")
+        port = int(os.environ.get("PORT", 10000))
+        app.run(host="0.0.0.0", port=port)
 
     asyncio.run(main())
-
-    # 🔥 Запуск Flask-сервера після webhook
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
