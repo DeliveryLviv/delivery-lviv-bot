@@ -81,7 +81,7 @@ async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await context.bot.send_message(chat_id=ADMIN_CHAT_ID, text=msg)
     await update.message.reply_text(
-        "Дякуємо! Ми зв’яжемося з вами протягом 10 хвилин.",
+        "Дякуємо! Ми зв’яжемося з вами протягом 15 хвилин.",
         reply_markup=ReplyKeyboardMarkup(start_keyboard, resize_keyboard=True)
     )
     return NAME
