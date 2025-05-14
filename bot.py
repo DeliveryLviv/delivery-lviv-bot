@@ -1,18 +1,16 @@
-import os
-from flask import Flask, request
-from telegram import Update, Bot, ReplyKeyboardMarkup, ReplyKeyboardRemove
+
+from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import (
     Application, CommandHandler, MessageHandler, ConversationHandler,
     ContextTypes, filters
 )
 
-# Основна конфігурація
-TOKEN = "7333032712:AAGDIXKZPa-iBabPRL2YaWI9_oeL5gTaA1Y"
-ADMIN_CHAT_ID = 915669253
-WEBHOOK_PATH = f"/webhook/{TOKEN}"
-WEBHOOK_URL = f"https://delivery-lviv-bot.onrender.com{WEBHOOK_PATH}"
+import os
 
-# Кроки форми
+TOKEN = os.getenv("BOT_TOKEN")
+ADMIN_CHAT_ID = int(os.getenv("ADMIN_CHAT_ID"))
+
+# Кроки
 NAME, SERVICE, LOADERS, ADDRESS, TIME, PHONE = range(6)
 
 # Клавіатура послуг
@@ -29,29 +27,19 @@ service_keyboard = [
     ["🛒 Для онлайн-магазинів (логістика)"]
 ]
 
-# Ініціалізація Flask і Telegram
-app = Flask(__name__)
-bot = Bot(token=TOKEN)
-application = Application.builder().token(TOKEN).build()
+start_keyboard = [["🚀 Зробити замовлення"]]
 
-# Додаємо кореневий маршрут для запобігання 404
-@app.route("/")
-def index():
-    return "✅ Бот працює", 200
-
-# Вебхук: приймає оновлення з Telegram
-@app.post(WEBHOOK_PATH)
-def webhook():
-    update = Update.de_json(request.get_json(force=True), bot)
-    application.update_queue.put_nowait(update)
-    return "OK", 200
-
-# Обробники діалогу
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Привіт! Як вас звати?")
+    await update.message.reply_text(
+        "Натисніть кнопку нижче, щоб почати оформлення замовлення.",
+        reply_markup=ReplyKeyboardMarkup(start_keyboard, resize_keyboard=True)
+    )
     return NAME
 
 async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.text == "🚀 Зробити замовлення":
+        await update.message.reply_text("Привіт! Як вас звати?", reply_markup=ReplyKeyboardRemove())
+        return NAME
     context.user_data["name"] = update.message.text
     await update.message.reply_text(
         "Оберіть послугу:",
@@ -82,7 +70,6 @@ async def get_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["phone"] = update.message.text
-
     msg = f"""📦 НОВЕ ЗАМОВЛЕННЯ!
 
 👤 Ім’я: {context.user_data['name']}
@@ -93,40 +80,35 @@ async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
 📞 Телефон: {context.user_data['phone']}"""
 
     await context.bot.send_message(chat_id=ADMIN_CHAT_ID, text=msg)
-    await update.message.reply_text("Дякуємо! Ми зв’яжемося з вами протягом 10 хвилин.",
-                                    reply_markup=ReplyKeyboardRemove())
-    return ConversationHandler.END
+    await update.message.reply_text(
+        "Дякуємо! Ми зв’яжемося з вами протягом 10 хвилин.",
+        reply_markup=ReplyKeyboardMarkup(start_keyboard, resize_keyboard=True)
+    )
+    return NAME
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Замовлення скасовано.", reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
-# Реєстрація обробників
-conv_handler = ConversationHandler(
-    entry_points=[CommandHandler("start", start)],
-    states={
-        NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
-        SERVICE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_service)],
-        LOADERS: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_loaders)],
-        ADDRESS: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_address)],
-        TIME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_time)],
-        PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone)],
-    },
-    fallbacks=[CommandHandler("cancel", cancel)],
-)
+def main():
+    app = Application.builder().token(TOKEN).build()
 
-application.add_handler(conv_handler)
+    conv_handler = ConversationHandler(
+        entry_points=[CommandHandler("start", start)],
+        states={
+            NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
+            SERVICE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_service)],
+            LOADERS: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_loaders)],
+            ADDRESS: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_address)],
+            TIME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_time)],
+            PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone)],
+        },
+        fallbacks=[CommandHandler("cancel", cancel)],
+    )
 
-# Запуск
-if __name__ == '__main__':
-    import asyncio
+    app.add_handler(conv_handler)
+    print("✅ Бот запущено через polling")
+    app.run_polling()
 
-    async def main():
-        await application.initialize()
-        await application.start()
-        await bot.set_webhook(WEBHOOK_URL)
-        print("✅ Вебхук встановлено і бот працює")
-        port = int(os.environ.get("PORT", 10000))
-        app.run(host="0.0.0.0", port=port)
-
-    asyncio.run(main())
+if __name__ == "__main__":
+    main()
