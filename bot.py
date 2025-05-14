@@ -117,10 +117,12 @@ def main():
 
     # Webhook handler
     @flask_app.route(WEBHOOK_PATH, methods=["POST"])
-    def telegram_webhook():
-        update = Update.de_json(request.get_json(force=True), application.bot)
-        asyncio.create_task(application.process_update(update))
-        return "ok"
+def telegram_webhook():
+    update = Update.de_json(request.get_json(force=True), application.bot)
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(application.process_update(update))
+    return "ok"
 
     # Healthcheck
     @flask_app.route("/", methods=["GET"])
