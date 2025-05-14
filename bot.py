@@ -7,7 +7,7 @@ from telegram.ext import (
 
 import os
 
-TOKEN = os.getenv("7333032712:AAGDIXKZPa-iBabPRL2YaWI9_oeL5gTaA1Y")
+TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_CHAT_ID = int(os.getenv("ADMIN_CHAT_ID"))
 
 # Кроки
