@@ -1,16 +1,9 @@
 services:
   - type: web
-    name: telegram-bot-lviv
+    name: delivery-lviv-bot
     env: python
+    plan: free
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "gunicorn app:app"
-    envVars:
-      - key: BOT_TOKEN
-        sync: false
-      - key: ADMIN_CHAT_ID
-        sync: false
-      - key: RENDER_EXTERNAL_HOSTNAME
-        fromService:
-          name: telegram-bot-lviv
-          type: web
-          property: host
+    startCommand: "python bot.py"
+    repo: https://github.com/DeliveryLviv/delivery-lviv-bot
+    branch: main
