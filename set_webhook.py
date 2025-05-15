@@ -1,8 +1,13 @@
-import telebot
+import os
+import requests
+from dotenv import load_dotenv
 
-TOKEN = '7333032712:AAGDIXKZPa-iBabPRL2YaWI9_oeL5gTaA1Y'
-WEBHOOK_URL = 'https://your-render-app.onrender.com/' + TOKEN
+load_dotenv()
 
-bot = telebot.TeleBot(TOKEN)
-bot.remove_webhook()
-bot.set_webhook(url=WEBHOOK_URL)
+TOKEN = os.getenv("7333032712:AAGDIXKZPa-iBabPRL2YaWI9_oeL5gTaA1Y")
+URL = "https://tamadakyma.pythonanywhere.com"  
+
+response = requests.get(f"https://api.telegram.org/bot{TOKEN}/setWebhook?url={URL}")
+
+print(response.status_code)
+print(response.text)
